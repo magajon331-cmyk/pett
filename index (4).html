@@ -1,0 +1,822 @@
+<!doctype html>
+<html lang="tg">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Байт — AI-Питомец</title>
+<style>
+:root{--bg:#070b14;--panel:#0e1526cc;--line:#22305a;--txt:#e6edff;--muted:#8a97c0;--c1:#6ee7ff;--c2:#a78bfa;--ok:#4ade80;--warn:#fbbf24;--bad:#fb7185}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%}
+body{background:var(--bg);color:var(--txt);font-family:"Segoe UI",system-ui,Roboto,sans-serif;overflow-x:hidden;min-height:100vh;transition:background 1s}
+body.night{background:#04060d}
+#rain{position:fixed;inset:0;z-index:0;opacity:.32}
+.glow{position:fixed;width:60vmax;height:60vmax;border-radius:50%;filter:blur(120px);z-index:0;opacity:.28;pointer-events:none;transition:opacity 1s}
+.glow.a{background:#6d28d9;top:-25vmax;left:-20vmax}
+.glow.b{background:#0891b2;bottom:-30vmax;right:-20vmax}
+body.ultra .glow{opacity:.65}
+.app{position:relative;z-index:1;max-width:1000px;margin:0 auto;padding:18px 16px 40px}
+header{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:16px;flex-wrap:wrap}
+h1{font-size:clamp(20px,4vw,30px);letter-spacing:.5px;background:linear-gradient(90deg,var(--c1),var(--c2));-webkit-background-clip:text;background-clip:text;color:transparent}
+h1 small{display:block;font-size:12px;color:var(--muted);-webkit-text-fill-color:var(--muted);letter-spacing:2px;text-transform:uppercase}
+.top-right{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.chip{background:var(--panel);border:1px solid var(--line);padding:8px 12px;border-radius:999px;font-size:13px;backdrop-filter:blur(8px);white-space:nowrap}
+.chip b{color:var(--c1)}
+.icon-btn{cursor:pointer;background:var(--panel);border:1px solid var(--line);color:var(--txt);width:38px;height:38px;border-radius:50%;font-size:17px}
+.icon-btn:hover{border-color:var(--c1)}
+.grid{display:grid;grid-template-columns:1.25fr 1fr;gap:16px}
+@media(max-width:820px){.grid{grid-template-columns:1fr}}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:22px;padding:18px;backdrop-filter:blur(10px);box-shadow:0 10px 40px #0006}
+
+/* stage */
+.stage{position:relative;min-height:410px;display:flex;flex-direction:column;align-items:center;justify-content:center;overflow:hidden;background:radial-gradient(circle at 50% 35%,#1b2a5c 0%,#0b1226 68%);transition:box-shadow .8s}
+.stage::before{content:"";position:absolute;inset:0;background-image:linear-gradient(#ffffff08 1px,transparent 1px),linear-gradient(90deg,#ffffff08 1px,transparent 1px);background-size:32px 32px;mask-image:radial-gradient(circle at 50% 50%,#000 30%,transparent 80%)}
+.sky{position:absolute;inset:0;opacity:0;transition:opacity 2s;background:radial-gradient(circle at 80% 15%,#c7d2fe 0 14px,transparent 15px),linear-gradient(#02040c,#0a0f26);pointer-events:none}
+.sky i{position:absolute;width:3px;height:3px;border-radius:50%;background:#fff;animation:tw 2s infinite alternate}
+@keyframes tw{from{opacity:.2}to{opacity:1}}
+.stage.night .sky{opacity:.9}
+.stage.night{box-shadow:inset 0 0 50px #a78bfa44,0 0 30px #6ee7ff22}
+.neon-sign{position:absolute;left:14px;bottom:14px;font:700 14px ui-monospace,Consolas,monospace;color:#f0abfc;text-shadow:0 0 6px #f0abfc,0 0 18px #d946ef;opacity:0;transition:opacity 1.5s;border:2px solid #f0abfc;border-radius:8px;padding:4px 8px;box-shadow:0 0 12px #d946ef88,inset 0 0 8px #d946ef88}
+.stage.night .neon-sign{opacity:1;animation:flick 3s infinite}
+@keyframes flick{0%,92%,100%{opacity:1}94%{opacity:.4}96%{opacity:1}98%{opacity:.5}}
+.mood-tag{position:absolute;top:14px;left:14px;font-size:13px;padding:6px 12px;border-radius:999px;background:#0008;border:1px solid var(--line);z-index:6}
+.banner{position:absolute;top:52px;left:50%;transform:translateX(-50%);z-index:6;font-weight:800;letter-spacing:1px;font-size:13px;padding:6px 14px;border-radius:999px;display:none;white-space:nowrap}
+.stage[data-power=super] .banner{display:block;background:#facc15;color:#1f1300;box-shadow:0 0 18px #facc15}
+.stage[data-power=ultra] .banner{display:block;background:linear-gradient(90deg,#a78bfa,#6ee7ff,#f0abfc);color:#050816;box-shadow:0 0 24px #a78bfa;animation:pulse 1s infinite}
+.bubble{position:absolute;top:14px;right:14px;max-width:52%;font-size:13px;background:#fff;color:#0b1226;padding:8px 12px;border-radius:14px 14px 4px 14px;font-weight:600;transition:.25s;z-index:6}
+.bubble.hide{opacity:0;transform:translateY(-6px)}
+#bot{width:min(290px,66vw);height:auto;position:relative;z-index:2;cursor:pointer;filter:drop-shadow(0 18px 24px #000a);transition:filter .4s;margin-top:34px}
+#bot.hop{animation:hop .5s ease}
+#bot.flip{animation:flip .9s ease-in-out}
+@keyframes hop{0%,100%{transform:translateY(0)}40%{transform:translateY(-18px)}}
+@keyframes flip{0%{transform:rotate(0) scale(1)}50%{transform:rotate(180deg) scale(1.15)}100%{transform:rotate(360deg) scale(1)}}
+#bot .body-grp{transform-origin:50% 90%;animation:float 3s ease-in-out infinite}
+.stage[data-mood=happy] #bot .body-grp{animation:bounce .9s ease-in-out infinite}
+.stage[data-mood=tired] #bot .body-grp{animation:droop 4s ease-in-out infinite}
+.stage[data-mood=sad] #bot .body-grp{animation:droop 5s ease-in-out infinite}
+.stage[data-mood=angry] #bot .body-grp{animation:shake .35s linear infinite}
+.stage[data-mood=sleepy] #bot .body-grp{animation:breathe 3.5s ease-in-out infinite}
+.stage[data-mood=surprised] #bot .body-grp{animation:jump .5s ease-out 2}
+.stage[data-mood=super] #bot .body-grp{animation:bounce .5s ease-in-out infinite}
+.stage[data-mood=ultra] #bot .body-grp{animation:bounce .45s ease-in-out infinite}
+.stage[data-mood=angry] #bot{filter:drop-shadow(0 0 22px #fb718588) drop-shadow(0 18px 24px #000a)}
+.stage[data-mood=happy] #bot{filter:drop-shadow(0 0 22px #4ade8066) drop-shadow(0 18px 24px #000a)}
+.stage[data-power=super] #bot{filter:drop-shadow(0 0 26px #facc15) drop-shadow(0 18px 24px #000a)}
+.stage[data-power=ultra] #bot{filter:drop-shadow(0 0 30px #a78bfa) drop-shadow(0 0 60px #6ee7ff) drop-shadow(0 18px 24px #000a)}
+.stage[data-fx=aura] #bot{filter:drop-shadow(0 0 28px #6ee7ff) drop-shadow(0 18px 24px #000a)}
+.stage[data-power=ultra]{animation:ultraGlow 1.2s ease-in-out infinite alternate}
+@keyframes ultraGlow{from{box-shadow:inset 0 0 40px #a78bfa88,0 0 20px #a78bfa66}to{box-shadow:inset 0 0 70px #6ee7ffaa,0 0 50px #6ee7ff88}}
+.stage[data-power=super]{box-shadow:inset 0 0 50px #facc1555,0 0 24px #facc1566}
+#face{transition:filter .3s}
+.stage[data-power] #face{filter:drop-shadow(0 0 8px #fff) brightness(1.4)}
+@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
+@keyframes bounce{0%,100%{transform:translateY(0) scale(1,1)}40%{transform:translateY(-22px) scale(.97,1.04)}60%{transform:translateY(0) scale(1.04,.96)}}
+@keyframes jump{0%,100%{transform:translateY(0)}50%{transform:translateY(-30px) scale(1.05)}}
+@keyframes droop{0%,100%{transform:translateY(6px) rotate(-1.5deg)}50%{transform:translateY(10px) rotate(1.5deg)}}
+@keyframes shake{0%{transform:translateX(-3px)}50%{transform:translateX(3px)}100%{transform:translateX(-3px)}}
+@keyframes breathe{0%,100%{transform:scale(1)}50%{transform:scale(1.025)}}
+#bot .blink{animation:blink 4.5s infinite;transform-origin:center;transform-box:fill-box}
+@keyframes blink{0%,94%,100%{transform:scaleY(1)}97%{transform:scaleY(.08)}}
+.antenna-dot{animation:pulse 1.4s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+.shadow{width:150px;height:18px;border-radius:50%;background:#000a;filter:blur(6px);margin-top:-4px}
+.zzz{position:absolute;font-weight:800;color:var(--c1);opacity:0;pointer-events:none;z-index:5}
+.stage[data-mood=sleepy] .zzz{animation:zzz 2.6s infinite}
+.zzz.z2{animation-delay:.9s!important;font-size:22px}
+.zzz.z3{animation-delay:1.8s!important;font-size:30px}
+@keyframes zzz{0%{opacity:0;transform:translate(0,0)}20%{opacity:1}100%{opacity:0;transform:translate(36px,-70px)}}
+.bugzone{position:absolute;inset:0;z-index:4;pointer-events:none}
+.bug{position:absolute;font-size:26px;cursor:pointer;pointer-events:auto;user-select:none;animation:crawl 6s ease-in-out infinite alternate}
+.bug:hover{filter:brightness(1.5)}
+.bug.pop{animation:pop .45s forwards;pointer-events:none}
+@keyframes crawl{0%{transform:translate(0,0) rotate(-10deg)}50%{transform:translate(26px,-14px) rotate(14deg)}100%{transform:translate(-18px,12px) rotate(-6deg)}}
+@keyframes pop{0%{transform:scale(1)}40%{transform:scale(1.9) rotate(40deg);filter:brightness(2)}100%{transform:scale(0) rotate(180deg);opacity:0}}
+.gift{position:absolute;right:18px;bottom:56px;font-size:46px;cursor:pointer;z-index:7;display:none;animation:wob 1.1s ease-in-out infinite;filter:drop-shadow(0 0 14px #fbbf24)}
+.gift.show{display:block}
+@keyframes wob{0%,100%{transform:rotate(-8deg) scale(1)}50%{transform:rotate(8deg) scale(1.15)}}
+.bolt,.spark{position:absolute;pointer-events:none;z-index:5}
+.bolt{font-size:34px;animation:bolt .6s forwards}
+.spark{font-size:18px;animation:spark 1.2s forwards}
+@keyframes bolt{0%{opacity:0;transform:scale(.5)}20%{opacity:1}100%{opacity:0;transform:scale(1.4) rotate(15deg)}}
+@keyframes spark{0%{opacity:0;transform:translateY(0) scale(.5)}30%{opacity:1}100%{opacity:0;transform:translateY(-50px) scale(1.2)}}
+
+/* stats */
+.stats{display:flex;flex-direction:column;gap:13px}
+.stat .row{display:flex;justify-content:space-between;font-size:14px;margin-bottom:6px}
+.stat .row span:last-child{color:var(--muted);font-variant-numeric:tabular-nums}
+.bar{height:14px;border-radius:999px;background:#0a1020;border:1px solid var(--line);overflow:hidden;position:relative}
+.fill{height:100%;width:50%;border-radius:999px;transition:width .5s ease,background .4s;position:relative}
+.fill::after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,transparent,#ffffff40,transparent);animation:shine 2.4s infinite}
+@keyframes shine{from{transform:translateX(-100%)}to{transform:translateX(100%)}}
+.fill.low{background:var(--bad)!important}
+.fill.mid{background:var(--warn)!important}
+.s-energy .fill{background:linear-gradient(90deg,#22c55e,#86efac)}
+.s-mood .fill{background:linear-gradient(90deg,#ec4899,#f9a8d4)}
+.s-quality .fill{background:linear-gradient(90deg,#6366f1,#a5b4fc)}
+.s-coffee .fill{background:linear-gradient(90deg,#b45309,#f59e0b)}
+.s-xp .fill{background:linear-gradient(90deg,#a78bfa,#6ee7ff)}
+.meta{display:flex;gap:10px;margin-top:14px}
+.meta div{flex:1;text-align:center;background:#0a1020;border:1px solid var(--line);border-radius:14px;padding:10px 6px}
+.meta b{display:block;font-size:20px;color:var(--c1);font-variant-numeric:tabular-nums}
+.meta small{color:var(--muted);font-size:11px}
+.hint{margin-top:12px;font-size:12px;color:var(--muted);line-height:1.5}
+
+/* buttons */
+.actions{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:16px}
+@media(max-width:620px){.actions{grid-template-columns:1fr 1fr}}
+.act{cursor:pointer;border:1px solid var(--line);background:linear-gradient(180deg,#141d3a,#0d1429);color:var(--txt);border-radius:18px;padding:14px 8px;font-size:14px;font-weight:600;display:flex;flex-direction:column;align-items:center;gap:6px;transition:.15s}
+.act .e{font-size:28px}
+.act small{font-weight:400;color:var(--muted);font-size:11px}
+.act:hover{transform:translateY(-3px);border-color:var(--c1);box-shadow:0 8px 24px #6ee7ff22}
+.act:active{transform:scale(.96)}
+.act:disabled{opacity:.45;cursor:not-allowed;transform:none}
+.act.on{border-color:var(--c2);box-shadow:0 0 0 2px #a78bfa55 inset}
+
+/* tabs */
+.panel{margin-top:16px}
+.tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+.tab{cursor:pointer;background:#0a1020;border:1px solid var(--line);color:var(--muted);border-radius:999px;padding:8px 14px;font-size:13px;font-weight:600}
+.tab.on{color:#050816;background:linear-gradient(90deg,var(--c1),var(--c2));border-color:transparent}
+.tp{display:none}.tp.on{display:block}
+.cats{display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap}
+.cat{cursor:pointer;background:transparent;border:1px solid var(--line);color:var(--muted);border-radius:10px;padding:5px 10px;font-size:12px}
+.cat.on{border-color:var(--c1);color:var(--c1)}
+.shop{display:grid;grid-template-columns:repeat(auto-fill,minmax(125px,1fr));gap:10px}
+.item{background:#0a1020;border:1px solid var(--line);border-radius:14px;padding:10px;text-align:center;font-size:13px}
+.item .em{font-size:30px}
+.item.eq{border-color:var(--ok)}
+.item button,.claim{cursor:pointer;margin-top:6px;width:100%;background:#16213f;color:var(--txt);border:1px solid var(--line);border-radius:10px;padding:6px;font-size:12px;font-weight:600}
+.item button:hover,.claim:hover{border-color:var(--c1)}
+.claim.go{background:linear-gradient(90deg,#22c55e,#4ade80);color:#04210f;border:0}
+.mission{display:flex;justify-content:space-between;align-items:center;gap:12px;background:#0a1020;border:1px solid var(--line);border-radius:14px;padding:12px;margin-bottom:10px;font-size:14px}
+.mission .l{flex:1}.mission .bar{margin-top:8px;height:10px}
+.mission .claim{width:auto;margin:0;padding:8px 12px}
+.mission.done{opacity:.55}
+.chat{height:170px;overflow:auto;background:#05080f;border:1px solid var(--line);border-radius:14px;padding:10px;display:flex;flex-direction:column;gap:6px}
+.msg{max-width:80%;padding:7px 11px;border-radius:12px;font-size:13px;line-height:1.4}
+.msg.me{align-self:flex-end;background:#3b3f9e}
+.msg.bot{align-self:flex-start;background:#13304a}
+.chatrow{display:flex;gap:8px;margin-top:10px}
+.chatrow input{flex:1;background:#0a1020;border:1px solid var(--line);color:var(--txt);border-radius:12px;padding:10px 12px;font-size:14px;outline:none}
+.chatrow input:focus{border-color:var(--c1)}
+.chatrow button{cursor:pointer;background:linear-gradient(90deg,var(--c1),var(--c2));color:#050816;border:0;border-radius:12px;padding:0 18px;font-weight:800}
+.abil{display:flex;gap:10px;align-items:center;padding:9px 12px;background:#0a1020;border:1px solid var(--line);border-radius:12px;margin-bottom:8px;font-size:13px}
+.abil.lock{opacity:.45}
+.log{margin-top:16px;font-family:ui-monospace,Consolas,monospace;font-size:12.5px;background:#05080f;border:1px solid var(--line);border-radius:16px;padding:12px;height:120px;overflow:auto;color:#7dd3a8}
+.log div{margin-bottom:3px}.log .t{color:#5b6b99}.log .w{color:var(--warn)}.log .e{color:var(--bad)}
+.fx{position:fixed;z-index:50;pointer-events:none;font-weight:800;font-size:20px;animation:rise 1.1s ease-out forwards;text-shadow:0 2px 8px #000}
+@keyframes rise{from{opacity:1;transform:translateY(0) scale(.8)}to{opacity:0;transform:translateY(-80px) scale(1.3)}}
+#toast{position:fixed;top:18px;left:50%;transform:translate(-50%,-140%);z-index:90;background:#fff;color:#0b1226;font-weight:800;padding:12px 20px;border-radius:16px;box-shadow:0 10px 40px #000a;transition:transform .35s;max-width:90vw;text-align:center}
+#toast.show{transform:translate(-50%,0)}
+footer{text-align:center;color:var(--muted);font-size:12px;margin-top:22px}
+</style>
+</head>
+<body>
+<canvas id="rain"></canvas>
+<div class="glow a"></div><div class="glow b"></div>
+<div id="toast"></div>
+
+<div class="app">
+  <header>
+    <h1>BYTE · AI-Питомец<small>Тамагочии девелопер</small></h1>
+    <div class="top-right">
+      <div class="chip" id="dayChip">🌞 Рӯз</div>
+      <div class="chip">🪙 <b id="coins">0</b></div>
+      <div class="chip">⏱ <b id="age">0:00</b></div>
+      <button class="icon-btn" id="mute" title="Садо">🔊</button>
+      <button class="icon-btn" id="reset" title="Аз нав">↻</button>
+    </div>
+  </header>
+
+  <div class="grid">
+    <section class="card stage" id="stage" data-mood="happy">
+      <div class="sky" id="sky"></div>
+      <div class="neon-sign">&lt;/&gt; BYTE LAB</div>
+      <div class="mood-tag" id="moodTag">😄 Хурсанд</div>
+      <div class="banner" id="banner"></div>
+      <div class="bubble hide" id="bubble"></div>
+      <div class="bugzone" id="bugzone"></div>
+      <div class="gift" id="gift" title="Тӯҳфаи махфӣ!">🎁</div>
+      <span class="zzz" style="left:58%;top:30%">Z</span>
+      <span class="zzz z2" style="left:62%;top:26%">Z</span>
+      <span class="zzz z3" style="left:66%;top:20%">Z</span>
+
+      <svg id="bot" viewBox="0 -30 300 350" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <linearGradient id="gBody" x1="0" y1="0" x2="1" y2="1">
+            <stop id="sk0" offset="0" stop-color="#8be9ff"/><stop id="sk1" offset="1" stop-color="#7c6cf5"/>
+          </linearGradient>
+          <linearGradient id="gScreen" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stop-color="#0b1226"/><stop offset="1" stop-color="#111c3d"/>
+          </linearGradient>
+        </defs>
+        <g class="body-grp">
+          <line x1="150" y1="40" x2="150" y2="14" stroke="#9fb0ff" stroke-width="5" stroke-linecap="round"/>
+          <circle class="antenna-dot" id="antenna" cx="150" cy="12" r="9" fill="#6ee7ff"/>
+          <rect x="28" y="100" width="22" height="56" rx="10" fill="#5b4fd6"/>
+          <rect x="250" y="100" width="22" height="56" rx="10" fill="#5b4fd6"/>
+          <rect x="42" y="40" width="216" height="170" rx="46" fill="url(#gBody)" stroke="#dbe4ff" stroke-opacity=".5" stroke-width="3"/>
+          <rect x="64" y="62" width="172" height="124" rx="30" fill="url(#gScreen)"/>
+          <g id="face"></g>
+          <ellipse id="cheekL" cx="86" cy="150" rx="12" ry="7" fill="#fb7185" opacity="0"/>
+          <ellipse id="cheekR" cx="214" cy="150" rx="12" ry="7" fill="#fb7185" opacity="0"/>
+          <rect x="82" y="214" width="136" height="76" rx="26" fill="url(#gBody)" stroke="#dbe4ff" stroke-opacity=".5" stroke-width="3"/>
+          <rect x="108" y="232" width="84" height="40" rx="10" fill="#0b1226"/>
+          <text id="chest" x="150" y="258" text-anchor="middle" font-family="monospace" font-size="18" fill="#6ee7ff">&lt;/&gt;</text>
+          <rect x="52" y="226" width="30" height="16" rx="8" fill="#5b4fd6"/>
+          <rect x="218" y="226" width="30" height="16" rx="8" fill="#5b4fd6"/>
+          <rect x="94" y="288" width="46" height="18" rx="9" fill="#5b4fd6"/>
+          <rect x="160" y="288" width="46" height="18" rx="9" fill="#5b4fd6"/>
+          <g id="acc"></g>
+        </g>
+      </svg>
+      <div class="shadow"></div>
+    </section>
+
+    <section class="card">
+      <div class="stats">
+        <div class="stat s-xp"><div class="row"><span>🏆 Level <b id="lvl">1</b></span><span id="vXp">0/0 XP</span></div><div class="bar"><div class="fill" id="bXp"></div></div></div>
+        <div class="stat s-energy"><div class="row"><span>⚡ Энергия</span><span id="vEnergy">0</span></div><div class="bar"><div class="fill" id="bEnergy"></div></div></div>
+        <div class="stat s-mood"><div class="row"><span>💖 Кайфият</span><span id="vMood">0</span></div><div class="bar"><div class="fill" id="bMood"></div></div></div>
+        <div class="stat s-quality"><div class="row"><span>🧪 Сифати код</span><span id="vQuality">0</span></div><div class="bar"><div class="fill" id="bQuality"></div></div></div>
+        <div class="stat s-coffee"><div class="row"><span>☕ Сатҳи кофе</span><span id="vCoffee">0</span></div><div class="bar"><div class="fill" id="bCoffee"></div></div></div>
+      </div>
+      <div class="meta">
+        <div><b id="mLines">0</b><small>сатри код</small></div>
+        <div><b id="mBugs">0</b><small>баги зинда</small></div>
+        <div><b id="mKilled">0</b><small>баг кушта шуд</small></div>
+      </div>
+      <div class="hint">☕×3 пайдарпай = <b>Super Developer</b> · Энергия ≥85, кайфият ≥85, сифат ≥75 + XP = <b>ULTRA</b> 🌌 · Ҳар 5 амали хуб = 🎁</div>
+    </section>
+  </div>
+
+  <div class="actions">
+    <button class="act" id="aFeed"><span class="e">☕</span>Кофе / хӯрок<small>+энергия</small></button>
+    <button class="act" id="aCode"><span class="e">💻</span>Код нависед<small>лоиҳа ↑ · энергия ↓</small></button>
+    <button class="act" id="aFix"><span class="e">🐞</span>Fix Bugs<small>+кайфият · +XP</small></button>
+    <button class="act" id="aSleep"><span class="e">😴</span><span id="sleepTxt">Истироҳат / Хоб</span><small>барқарорӣ</small></button>
+  </div>
+
+  <section class="card panel">
+    <div class="tabs">
+      <button class="tab on" data-tab="shop">🛒 Мағоза</button>
+      <button class="tab" data-tab="missions">📅 Миссияҳо</button>
+      <button class="tab" data-tab="chat">💬 Чат</button>
+      <button class="tab" data-tab="level">🏆 Level</button>
+    </div>
+    <div class="tp on" id="tp-shop">
+      <div class="cats" id="cats"></div>
+      <div class="shop" id="shop"></div>
+    </div>
+    <div class="tp" id="tp-missions"><div id="missions"></div></div>
+    <div class="tp" id="tp-chat">
+      <div class="chat" id="chat"></div>
+      <div class="chatrow"><input id="chatIn" placeholder="Салом, Чӣ ҳол дорӣ?, Код навис..." maxlength="120"><button id="chatSend">Фиристодан</button></div>
+    </div>
+    <div class="tp" id="tp-level"><div id="levels"></div></div>
+  </section>
+
+  <div class="log" id="log"></div>
+  <footer>Space = код · C = кофе · F = fix · S = хоб · Ба Байт ва багҳо клик кунед!</footer>
+</div>
+
+<script>
+(() => {
+  const $ = id => document.getElementById(id);
+  const clamp = (v,a=0,b=100) => Math.max(a,Math.min(b,v));
+  const rnd = (a,b) => Math.floor(a + Math.random()*(b-a+1));
+  const pick = a => a[rnd(0,a.length-1)];
+  const KEY = "byte-pet-v2";
+
+  const fresh = () => ({energy:80,mood:75,quality:50,coffee:60,lines:0,bugs:0,killed:0,sleeping:false,age:0,
+    xp:0,level:1,coins:25,owned:[],eq:{head:null,face:null,ear:null,body:null,fx:null},skin:null,
+    streak:0,superUntil:0,superCool:0,ultraUntil:0,ultraCool:0,goodCount:0,gift:false,mDay:"",mList:[],mProg:{},mClaim:{},mood0:1});
+  let S = fresh();
+  try{
+    const sv = JSON.parse(localStorage.getItem(KEY));
+    if (sv){ S = Object.assign(fresh(), sv); S.eq = Object.assign(fresh().eq, sv.eq||{}); }
+  }catch(e){}
+  S.sleeping = false;
+  let surpriseUntil = 0;
+
+  /* ---------- sound ---------- */
+  let muted=false, actx;
+  function tone(f=440,d=.12,type="sine",vol=.06,slide=0,delay=0){
+    if (muted) return;
+    try{
+      actx = actx || new (window.AudioContext||window.webkitAudioContext)();
+      const t = actx.currentTime+delay, o=actx.createOscillator(), g=actx.createGain();
+      o.type=type; o.frequency.setValueAtTime(f,t);
+      if (slide) o.frequency.exponentialRampToValueAtTime(Math.max(30,f+slide),t+d);
+      g.gain.setValueAtTime(vol,t); g.gain.exponentialRampToValueAtTime(.0001,t+d);
+      o.connect(g).connect(actx.destination); o.start(t); o.stop(t+d+.02);
+    }catch(e){}
+  }
+  const sfx = {
+    coffee(){tone(520,.08,"triangle");tone(780,.12,"triangle",.06,0,.08)},
+    code(){for(let i=0;i<4;i++)tone(900+rnd(0,400),.03,"square",.03,0,i*.05)},
+    fix(){tone(660,.1);tone(880,.1,"sine",.06,0,.1);tone(1320,.18,"sine",.06,0,.2)},
+    sleep(){tone(440,.4,"sine",.05,-200);tone(330,.5,"sine",.04,-120,.3)},
+    bug(){tone(180,.18,"sawtooth",.04,-80)},
+    bad(){tone(200,.25,"square",.05,-120)},
+    up(){[523,659,784,1046].forEach((f,i)=>tone(f,.15,"triangle",.07,0,i*.09))},
+    poke(){tone(700,.06,"sine",.05,300)},
+    gift(){[784,988,1175,1568].forEach((f,i)=>tone(f,.12,"sine",.06,0,i*.07))},
+    zap(){tone(1200,.3,"sawtooth",.05,-900);tone(300,.4,"square",.04,300,.1)}
+  };
+
+  /* ---------- catalog ---------- */
+  const SKINS = {default:["#8be9ff","#7c6cf5"],mint:["#86efac","#06b6d4"],pink:["#f9a8d4","#8b5cf6"],orange:["#fdba74","#ef4444"],gold:["#fde68a","#f59e0b"]};
+  const LV_SKIN = ["default","default","mint","pink","orange","gold"];
+  const ITEMS = [
+    {id:"coffee",cat:"food",e:"☕",n:"Эспрессо",p:12,use(){S.coffee=clamp(S.coffee+35);S.energy=clamp(S.energy+18);bumpStreak()}},
+    {id:"pizza",cat:"food",e:"🍕",n:"Питса",p:25,use(){S.energy=clamp(S.energy+28);S.mood=clamp(S.mood+10)}},
+    {id:"drink",cat:"food",e:"🥤",n:"Energy Drink",p:35,use(){S.energy=clamp(S.energy+45);S.coffee=clamp(S.coffee+20);S.mood=clamp(S.mood-4)}},
+    {id:"cake",cat:"food",e:"🍰",n:"Торт",p:20,use(){S.mood=clamp(S.mood+28);S.energy=clamp(S.energy+8)}},
+    {id:"cap",cat:"wear",slot:"head",e:"🧢",n:"Кепка",p:40},
+    {id:"wizard",cat:"wear",slot:"head",e:"🧙",n:"Кулоҳи ҷодугар",p:70},
+    {id:"crown",cat:"wear",slot:"head",e:"👑",n:"Тоҷ",p:120},
+    {id:"glasses",cat:"wear",slot:"face",e:"👓",n:"Айнак",p:30},
+    {id:"shades",cat:"wear",slot:"face",e:"🕶",n:"Айнаки сиёҳ",p:45},
+    {id:"phones",cat:"wear",slot:"ear",e:"🎧",n:"Гӯшмонак",p:50},
+    {id:"hoodie",cat:"wear",slot:"body",e:"🧥",n:"Dev-ҳуди",p:60},
+    {id:"tie",cat:"wear",slot:"body",e:"👔",n:"Галстук",p:35},
+    {id:"mint",cat:"skin",slot:"skin",e:"🟢",n:"Ранги Мint",p:40},
+    {id:"pink",cat:"skin",slot:"skin",e:"🩷",n:"Ранги Pink",p:40},
+    {id:"orange",cat:"skin",slot:"skin",e:"🟠",n:"Ранги Orange",p:60},
+    {id:"gold",cat:"skin",slot:"skin",e:"🟡",n:"Ранги Gold",p:90},
+    {id:"sparkle",cat:"fx",slot:"fx",e:"✨",n:"Сатҳи нурафшон",p:60},
+    {id:"aura",cat:"fx",slot:"fx",e:"💠",n:"Neon Aura",p:90},
+    {id:"lightning",cat:"fx",slot:"fx",e:"⚡",n:"Барқ",p:120}
+  ];
+  const CATS = {food:"🍕 Хӯрок",wear:"👕 Либос",skin:"🎨 Ранг",fx:"✨ Эффект"};
+  const item = id => ITEMS.find(i=>i.id===id);
+  const ABIL = [
+    [2,"Кепка ройгон + кофе 25% суст кам мешавад"],
+    [3,"Auto-Debugger: ҳар 40 сония як Bug худаш ислоҳ мешавад"],
+    [4,"Тангаҳои иловагӣ: +25% ҳамеша"],
+    [5,"Ultra режим 10 сония дарозтар"],
+    [6,"Neon Aura ройгон + ранги тиллоӣ"]
+  ];
+
+  /* ---------- accessories svg ---------- */
+  function accSvg(){
+    let s="";
+    const e=S.eq;
+    if(e.body==="hoodie") s+=`<path d="M82 214 H218 V276 Q218 290 202 290 H98 Q82 290 82 276 Z" fill="#334155" stroke="#94a3b8" stroke-width="2"/><path d="M120 214 Q150 244 180 214" fill="none" stroke="#1e293b" stroke-width="6"/><line x1="136" y1="228" x2="136" y2="250" stroke="#e2e8f0" stroke-width="3"/><line x1="164" y1="228" x2="164" y2="250" stroke="#e2e8f0" stroke-width="3"/><rect x="116" y="262" width="68" height="20" rx="8" fill="#1e293b"/><text x="150" y="278" text-anchor="middle" font-family="monospace" font-size="13" fill="#6ee7ff">&lt;/&gt;</text>`;
+    if(e.body==="tie") s+=`<path d="M142 214 L158 214 L162 232 L150 262 L138 232 Z" fill="#ef4444" stroke="#7f1d1d" stroke-width="2"/>`;
+    if(e.ear==="phones") s+=`<path d="M44 122 Q44 34 150 34 Q256 34 256 122" fill="none" stroke="#1f2937" stroke-width="10" stroke-linecap="round"/><rect x="22" y="98" width="30" height="64" rx="14" fill="#111827" stroke="#6ee7ff" stroke-width="3"/><rect x="248" y="98" width="30" height="64" rx="14" fill="#111827" stroke="#6ee7ff" stroke-width="3"/>`;
+    if(e.face==="glasses") s+=`<rect x="90" y="94" width="44" height="36" rx="12" fill="#ffffff10" stroke="#fff" stroke-width="5"/><rect x="166" y="94" width="44" height="36" rx="12" fill="#ffffff10" stroke="#fff" stroke-width="5"/><line x1="134" y1="108" x2="166" y2="108" stroke="#fff" stroke-width="5"/>`;
+    if(e.face==="shades") s+=`<rect x="88" y="94" width="48" height="34" rx="10" fill="#050816" stroke="#fff" stroke-width="3"/><rect x="164" y="94" width="48" height="34" rx="10" fill="#050816" stroke="#fff" stroke-width="3"/><line x1="136" y1="106" x2="164" y2="106" stroke="#fff" stroke-width="4"/><path d="M96 102 L112 102" stroke="#6ee7ff" stroke-width="3" opacity=".7"/>`;
+    if(e.head==="cap") s+=`<path d="M64 56 Q150 -4 236 56 Z" fill="#ef4444" stroke="#7f1d1d" stroke-width="3"/><rect x="170" y="48" width="84" height="12" rx="6" fill="#b91c1c"/><circle cx="150" cy="14" r="6" fill="#fff"/>`;
+    if(e.head==="wizard") s+=`<path d="M86 52 L150 -26 L214 52 Z" fill="#6d28d9" stroke="#3b0764" stroke-width="3"/><rect x="72" y="46" width="156" height="12" rx="6" fill="#4c1d95"/><text x="150" y="30" text-anchor="middle" font-size="20" fill="#fde047">★</text>`;
+    if(e.head==="crown") s+=`<path d="M92 54 L102 14 L126 38 L150 6 L174 38 L198 14 L208 54 Z" fill="#facc15" stroke="#a16207" stroke-width="3"/><circle cx="150" cy="22" r="5" fill="#ef4444"/><circle cx="108" cy="30" r="4" fill="#22d3ee"/><circle cx="192" cy="30" r="4" fill="#22d3ee"/>`;
+    return s;
+  }
+
+  /* ---------- faces ---------- */
+  const faces = {
+    happy:`<path d="M96 112 Q112 90 128 112" stroke="#6ee7ff" stroke-width="9" fill="none" stroke-linecap="round"/><path d="M172 112 Q188 90 204 112" stroke="#6ee7ff" stroke-width="9" fill="none" stroke-linecap="round"/><path d="M116 142 Q150 182 184 142 Z" fill="#6ee7ff"/><path d="M130 152 Q150 170 170 152" fill="#fb7185"/>`,
+    neutral:`<g class="blink"><ellipse cx="112" cy="112" rx="13" ry="17" fill="#6ee7ff"/><ellipse cx="188" cy="112" rx="13" ry="17" fill="#6ee7ff"/></g><circle cx="116" cy="106" r="5" fill="#fff"/><circle cx="192" cy="106" r="5" fill="#fff"/><path d="M126 152 Q150 164 174 152" stroke="#6ee7ff" stroke-width="8" fill="none" stroke-linecap="round"/>`,
+    tired:`<path d="M96 116 H128" stroke="#9fb0ff" stroke-width="9" stroke-linecap="round"/><path d="M172 116 H204" stroke="#9fb0ff" stroke-width="9" stroke-linecap="round"/><path d="M92 100 L130 108" stroke="#9fb0ff" stroke-width="5" stroke-linecap="round" opacity=".7"/><path d="M208 100 L170 108" stroke="#9fb0ff" stroke-width="5" stroke-linecap="round" opacity=".7"/><path d="M128 162 Q150 148 172 162" stroke="#9fb0ff" stroke-width="8" fill="none" stroke-linecap="round"/><path d="M214 130 q6 12 0 16 q-6 -4 0 -16z" fill="#6ee7ff" opacity=".8"/>`,
+    sad:`<ellipse cx="112" cy="116" rx="12" ry="15" fill="#93c5fd"/><ellipse cx="188" cy="116" rx="12" ry="15" fill="#93c5fd"/><circle cx="116" cy="111" r="4" fill="#fff"/><circle cx="192" cy="111" r="4" fill="#fff"/><path d="M92 96 L128 86" stroke="#93c5fd" stroke-width="6" stroke-linecap="round"/><path d="M208 96 L172 86" stroke="#93c5fd" stroke-width="6" stroke-linecap="round"/><path d="M124 166 Q150 142 176 166" stroke="#93c5fd" stroke-width="8" fill="none" stroke-linecap="round"/><path d="M104 134 q6 14 0 20 q-7 -6 0 -20z" fill="#38bdf8"/>`,
+    angry:`<ellipse cx="112" cy="116" rx="12" ry="14" fill="#fb7185"/><ellipse cx="188" cy="116" rx="12" ry="14" fill="#fb7185"/><path d="M88 90 L134 108" stroke="#fb7185" stroke-width="9" stroke-linecap="round"/><path d="M212 90 L166 108" stroke="#fb7185" stroke-width="9" stroke-linecap="round"/><path d="M120 164 L132 152 L144 164 L156 152 L168 164 L180 152" stroke="#fb7185" stroke-width="7" fill="none" stroke-linecap="round" stroke-linejoin="round"/>`,
+    sleepy:`<path d="M96 114 Q112 126 128 114" stroke="#a78bfa" stroke-width="8" fill="none" stroke-linecap="round"/><path d="M172 114 Q188 126 204 114" stroke="#a78bfa" stroke-width="8" fill="none" stroke-linecap="round"/><ellipse cx="150" cy="156" rx="9" ry="7" fill="#a78bfa" opacity=".9"/>`,
+    surprised:`<circle cx="112" cy="112" r="19" fill="#fff"/><circle cx="188" cy="112" r="19" fill="#fff"/><circle cx="112" cy="112" r="8" fill="#0b1226"/><circle cx="188" cy="112" r="8" fill="#0b1226"/><path d="M92 82 Q112 70 132 82" stroke="#6ee7ff" stroke-width="6" fill="none" stroke-linecap="round"/><path d="M168 82 Q188 70 208 82" stroke="#6ee7ff" stroke-width="6" fill="none" stroke-linecap="round"/><ellipse cx="150" cy="158" rx="14" ry="18" fill="#6ee7ff"/><ellipse cx="150" cy="160" rx="8" ry="11" fill="#0b1226"/>`,
+    super:`<rect x="88" y="98" width="48" height="26" rx="10" fill="#facc15"/><rect x="164" y="98" width="48" height="26" rx="10" fill="#facc15"/><rect x="96" y="106" width="32" height="8" rx="4" fill="#fff"/><rect x="172" y="106" width="32" height="8" rx="4" fill="#fff"/><path d="M106 144 Q150 192 194 144 Z" fill="#facc15"/><path d="M122 150 H178" stroke="#1f1300" stroke-width="3"/><path d="M70 96 l-8 16 h10 l-6 16" stroke="#facc15" stroke-width="4" fill="none" stroke-linecap="round" stroke-linejoin="round"/><path d="M230 96 l8 16 h-10 l6 16" stroke="#facc15" stroke-width="4" fill="none" stroke-linecap="round" stroke-linejoin="round"/>`,
+    ultra:`<text x="112" y="130" text-anchor="middle" font-size="46" fill="#a78bfa">✦</text><text x="188" y="130" text-anchor="middle" font-size="46" fill="#6ee7ff">✦</text><path d="M104 146 Q150 196 196 146 Z" fill="#f0abfc"/><path d="M120 152 H180" stroke="#2e1065" stroke-width="3"/><circle cx="74" cy="84" r="4" fill="#fff"/><circle cx="226" cy="84" r="4" fill="#fff"/><circle cx="80" cy="170" r="3" fill="#6ee7ff"/><circle cx="220" cy="170" r="3" fill="#a78bfa"/>`
+  };
+  const moodMeta = {happy:["😄","Хурсанд"],neutral:["😐","Оддӣ"],tired:["🥱","Хаста"],sad:["😢","Ғамгин"],angry:["😡","Асабӣ"],sleepy:["😴","Хоболуд"],surprised:["😲","Ҳайрон"],super:["⚡","Super Dev"],ultra:["🌌","ULTRA"]};
+  const lines = {
+    happy:["Мо дар вайб! 🚀","Код менависем, бе баг!","Ту беҳтарин девелопер!","Deploy мекунем?"],
+    neutral:["Ҳм... кори навбатӣ?","Беҳтар аст кофе нӯшем.","Ман омодаам."],
+    tired:["Энергия кам... ☕","Чашмонам ба ҳам меафтанд...","Як пиёла кофе, лутфан."],
+    sad:["Кайфиятам паст... 🥺","Як Bug-ро ислоҳ кунем?","Маро нигоҳ кун...","Каме меҳрубонӣ лозим..."],
+    angry:["Баг! Ҳама ҷо баг!!","Ин код кӣ навиштааст?!","FIX IT NOW! 🔥"],
+    sleepy:["Zzz... git commit... zzz","Ман дар хобам мекодам..."],
+    surprised:["Вой! Ин чӣ буд?! 😲","Ҳайронам!","Воҳ!"],
+    super:["Super Developer фаъол! ⚡","Қудрат бепоён!"],
+    ultra:["ULTRA MODE! 🌌","Ман ҳамаро медонам!","Ҳеҷ баг маро нигоҳ дошта наметавонад!"]
+  };
+
+  /* ---------- helpers ---------- */
+  const pw = () => S.ultraUntil>S.age ? "ultra" : S.superUntil>S.age ? "super" : "";
+  const isNight = () => (S.age % 180) >= 95;
+  const need = () => 80 + S.level*40;
+  const coinMult = () => S.level>=4 ? 1.25 : 1;
+  const addCoins = n => { S.coins += Math.round(n*coinMult()); };
+  function currentMood(){
+    if (S.sleeping) return "sleepy";
+    if (surpriseUntil > Date.now()) return "surprised";
+    const p = pw(); if (p) return p;
+    if (S.energy < (isNight()?45:25)) return "tired";
+    if (S.mood < 30 || S.bugs >= 4) return "angry";
+    if (S.mood < 45) return "sad";
+    if (S.mood >= 60 && S.energy >= 40) return "happy";
+    return "neutral";
+  }
+  function surprise(ms=1500){ surpriseUntil = Date.now()+ms; setTimeout(render, ms+60); }
+  const skinId = () => S.skin || LV_SKIN[Math.min(S.level-1,5)];
+
+  let bubbleT;
+  function speak(mood, text, ms=3300){
+    const arr = lines[mood]; if (!arr && !text) return;
+    const b = $("bubble"); b.textContent = text || pick(arr);
+    b.classList.remove("hide"); clearTimeout(bubbleT); bubbleT = setTimeout(()=>b.classList.add("hide"),ms);
+  }
+  function log(msg, cls=""){
+    const d=document.createElement("div");
+    d.innerHTML=`<span class="t">[${new Date().toLocaleTimeString("en-GB")}]</span> <span class="${cls}">${msg}</span>`;
+    const L=$("log"); L.appendChild(d); while(L.children.length>60) L.removeChild(L.firstChild); L.scrollTop=L.scrollHeight;
+  }
+  function fx(text,color="#6ee7ff",x,y){
+    const r=$("bot").getBoundingClientRect(), e=document.createElement("div");
+    e.className="fx"; e.textContent=text; e.style.color=color;
+    e.style.left=(x ?? r.left+r.width/2+rnd(-60,60))+"px"; e.style.top=(y ?? r.top+40)+"px";
+    document.body.appendChild(e); setTimeout(()=>e.remove(),1100);
+  }
+  let toastT;
+  function toast(html){ const t=$("toast"); t.innerHTML=html; t.classList.add("show"); clearTimeout(toastT); toastT=setTimeout(()=>t.classList.remove("show"),2800); }
+  const todayKey = () => new Date().toLocaleDateString("sv");
+
+  /* ---------- XP / levels ---------- */
+  function gainXP(n){
+    n = Math.round(n); S.xp += n;
+    while (S.xp >= need()){ S.xp -= need(); S.level++; onLevelUp(); }
+  }
+  function onLevelUp(){
+    sfx.up(); S.mood=clamp(S.mood+10); addCoins(20);
+    let extra="";
+    const ab = ABIL.find(a=>a[0]===S.level);
+    if (ab) extra = "<br><small>"+ab[1]+"</small>";
+    if (S.level===2 && !S.owned.includes("cap")) S.owned.push("cap");
+    if (S.level===6 && !S.owned.includes("aura")) S.owned.push("aura");
+    toast(`🎉 LEVEL ${S.level}!${extra}`);
+    log(`Level ${S.level} расид! Намуди нав кушода шуд 🎉`,"w");
+    surprise(); speak("happy",`Level ${S.level}! Ман қавитар шудам! 💪`);
+    renderTabs();
+  }
+
+  /* ---------- missions ---------- */
+  const POOL = [
+    {id:"feed",t:"2 маротиба кофе/хӯрок деҳ",n:2,c:20,x:25},
+    {id:"code",t:"3 маротиба код нависед",n:3,c:25,x:30},
+    {id:"fix",t:"2 Bug-ро ислоҳ намо",n:2,c:25,x:35},
+    {id:"chat",t:"3 паём ба питомц нависед",n:3,c:15,x:20},
+    {id:"sleep",t:"Як маротиба истироҳат кунед",n:1,c:15,x:20},
+    {id:"poke",t:"Ба питомц 5 маротиба клик кунед",n:5,c:10,x:15},
+    {id:"lines",t:"100 сатр код нависед",n:100,c:30,x:40}
+  ];
+  function ensureMissions(){
+    const d=todayKey();
+    if (S.mDay===d && S.mList.length) return;
+    S.mDay=d; S.mProg={}; S.mClaim={};
+    let seed=Number(d.replace(/-/g,"")), ids=[];
+    while(ids.length<3){ seed=(seed*1103515245+12345)%2147483648; const id=POOL[seed%POOL.length].id; if(!ids.includes(id)) ids.push(id); }
+    S.mList=ids;
+  }
+  function progress(id,amt=1){
+    ensureMissions();
+    const m=POOL.find(p=>p.id===id); if(!m||!S.mList.includes(id)) return;
+    const before=S.mProg[id]||0; if(before>=m.n) return;
+    S.mProg[id]=Math.min(m.n,before+amt);
+    if (S.mProg[id]>=m.n){ toast("✅ Миссия анҷом ёфт! Мукофотро гиред 📅"); sfx.up(); log("Миссия анҷом ёфт: "+m.t,"w"); }
+    renderTabs();
+  }
+
+  /* ---------- gifts ---------- */
+  function good(){
+    S.goodCount++;
+    if (S.goodCount>=5 && !S.gift){ S.goodCount=0; S.gift=true; surprise(); sfx.gift(); log("🎁 Тӯҳфаи махфӣ пайдо шуд! Онро клик кунед.","w"); speak("surprised","Қуттии махфӣ! 🎁"); }
+  }
+  function openGift(){
+    if (!S.gift) return;
+    S.gift=false; sfx.gift();
+    const r=Math.random(); let msg;
+    if (r<.35){ const c=rnd(25,60); addCoins(c); msg=`🪙 +${c} танга`; }
+    else if (r<.55){ S.coffee=100; S.energy=clamp(S.energy+25); msg="☕ Кофеи пурра + энергия"; }
+    else if (r<.85){
+      const lock=ITEMS.filter(i=>i.cat!=="food"&&!S.owned.includes(i.id));
+      if (lock.length){ const it=pick(lock); S.owned.push(it.id); msg=`${it.e} ${it.n} — ҳадя!`; }
+      else { addCoins(80); msg="🪙 +80 танга"; }
+    } else { gainXP(40); msg="🧠 +40 XP"; }
+    toast("🎁 Дар қуттӣ: <br>"+msg); log("Тӯҳфа кушода шуд: "+msg,"w");
+    surprise(); renderTabs(); render();
+  }
+
+  /* ---------- bugs ---------- */
+  function syncBugs(){
+    const z=$("bugzone"), live=[...z.children].filter(c=>!c.classList.contains("pop"));
+    while(live.length>S.bugs){ const b=live.pop(); b.classList.add("pop"); setTimeout(()=>b.remove(),480); }
+    while(live.length<S.bugs){
+      const b=document.createElement("span"); b.className="bug"; b.textContent=pick(["🐞","🐛","🪲"]);
+      b.style.left=rnd(8,82)+"%"; b.style.top=rnd(16,76)+"%"; b.style.animationDuration=(3+Math.random()*4)+"s";
+      b.addEventListener("click",e=>{ e.stopPropagation(); if(!S.sleeping) killBug(true,e.clientX,e.clientY); });
+      z.appendChild(b); live.push(b);
+    }
+  }
+  function killBug(manual,x,y){
+    if (S.bugs<=0) return;
+    S.bugs--; S.killed++;
+    S.mood=clamp(S.mood+(manual?10:4)); S.quality=clamp(S.quality+3);
+    gainXP(8); addCoins(3);
+    fx("💥 +8 XP","#4ade80",x,y); sfx.fix(); log(manual?"Баг нест шуд! 🐞💥 +8 XP":"Auto-Debugger Bug-ро ёфт ва нест кард 🤖");
+    syncBugs();
+    if (manual){ progress("fix"); good(); }
+    render();
+  }
+  function addBug(n=1){
+    S.bugs=Math.min(8,S.bugs+n); syncBugs(); sfx.bug(); surprise(900); log("Баги нав пайдо шуд! 🐛","w");
+  }
+
+  /* ---------- power modes ---------- */
+  function bumpStreak(){
+    S.streak++;
+    if (S.streak>=3){
+      S.streak=0;
+      if (S.age>=S.superCool && !pw()) activateSuper();
+    }
+  }
+  function activateSuper(){
+    S.superUntil=S.age+20; S.superCool=S.age+60;
+    sfx.zap(); surprise(900); log("☕☕☕ COFFEE OVERLOAD! Super Developer режим фаъол шуд ⚡","w");
+    toast("⚡ SUPER DEVELOPER ⚡<br><small>20 сония: Bug-ро пешакӣ меёбад</small>");
+    render(); speak("super","Ман ҳоло ҳатто Bug-ро пеш аз пайдо шуданаш меёбам!",4500);
+  }
+  function checkUltra(){
+    if (pw()||S.sleeping||S.age<S.ultraCool) return;
+    if (S.level>=2 && S.energy>=85 && S.mood>=85 && S.quality>=75 && S.xp>=need()*.4){
+      S.ultraUntil=S.age+25+(S.level>=5?10:0); S.superUntil=0;
+      sfx.zap(); sfx.up(); surprise(1000); log("🌌 ULTRA DEVELOPER MODE фаъол шуд!","w");
+      toast("🌌 ULTRA DEVELOPER MODE 🌌<br><small>XP ×2 · Bug нест · энергия кам намешавад</small>");
+      render(); speak("ultra","ULTRA MODE! Ман аз ҳад гузаштам! 🌌",4500);
+    }
+  }
+
+  /* ---------- actions ---------- */
+  function feed(){
+    if (S.sleeping) return;
+    S.coffee=clamp(S.coffee+28); S.energy=clamp(S.energy+14); S.mood=clamp(S.mood+3);
+    gainXP(2); fx("+14 ⚡","#4ade80"); fx("+28 ☕","#f59e0b"); sfx.coffee();
+    log(`Кофе нӯшида шуд ☕ (пайдарпай: ${Math.min(S.streak+1,3)}/3)`);
+    progress("feed"); good(); bumpStreak(); render();
+  }
+  function code(){
+    if (S.sleeping) return;
+    if (S.energy<10){ fx("Энергия намерасад!","#fb7185"); sfx.bad(); speak("tired","Аввал кофе... ☕"); return; }
+    S.streak=0;
+    const p=pw(), tired=S.energy<30||S.coffee<15;
+    const add=rnd(10,30)*(p==="ultra"?2:1);
+    S.lines+=add; progress("lines",add);
+    S.energy=clamp(S.energy-(p==="ultra"?3:p==="super"?6:12)); S.coffee=clamp(S.coffee-(p?3:8));
+    S.mood=clamp(S.mood+(tired?-3:3)); S.quality=clamp(S.quality+(tired?-2:rnd(3,6)));
+    gainXP((add/3)*(p==="ultra"?2:p==="super"?1.5:1));
+    fx(`+${add} сатр`,"#6ee7ff"); sfx.code(); log(`git commit -m "feat: ${add} сатр код"`);
+    if (!p && Math.random()<(tired?.55:.25)) addBug();
+    progress("code"); good(); render();
+  }
+  function fix(){
+    if (S.sleeping) return;
+    S.streak=0;
+    if (S.bugs>0){ S.energy=clamp(S.energy-4); killBug(true); }
+    else { S.mood=clamp(S.mood+4); S.energy=clamp(S.energy-2); fx("Багҳо нестанд 😎","#6ee7ff"); sfx.poke(); log("Код тоза аст — рефакторинг карда шуд."); render(); }
+  }
+  function wake(auto){
+    S.sleeping=false; gainXP(3); fx("Субҳ бахайр!","#fbbf24"); sfx.up();
+    log(auto?"Энергия пур шуд — Байт худ бедор шуд ⏰":"Байт бедор шуд ⏰");
+  }
+  function sleepBtn(){
+    S.streak=0;
+    if (S.sleeping){
+      if (S.energy<20){ speak("sleepy","Ҳанӯз хастаам... 😴"); sfx.bad(); return; }
+      wake(false);
+    } else { S.sleeping=true; progress("sleep"); good(); sfx.sleep(); log("Байт хоб рафт... 💤"); }
+    render();
+  }
+  function poke(e){
+    sfx.poke(); $("bot").classList.remove("hop"); void $("bot").offsetWidth; $("bot").classList.add("hop");
+    if (S.sleeping){ speak("sleepy","Хобамро халал надеҳ... 😤"); S.mood=clamp(S.mood-2); }
+    else { S.mood=clamp(S.mood+1); fx("❤","#ec4899",e.clientX,e.clientY); speak(currentMood()); progress("poke"); }
+    render();
+  }
+
+  /* ---------- shop ---------- */
+  let shopCat="food";
+  function renderShop(){
+    $("cats").innerHTML=Object.entries(CATS).map(([k,v])=>`<button class="cat ${k===shopCat?"on":""}" data-cat="${k}">${v}</button>`).join("");
+    $("shop").innerHTML=ITEMS.filter(i=>i.cat===shopCat).map(i=>{
+      const own=S.owned.includes(i.id);
+      const on = i.slot==="skin" ? S.skin===i.id : i.slot ? S.eq[i.slot]===i.id : false;
+      let btn;
+      if (i.cat==="food") btn=`<button data-buy="${i.id}">Харид 🪙${i.p}</button>`;
+      else if (!own) btn=`<button data-buy="${i.id}">Харид 🪙${i.p}</button>`;
+      else btn=`<button data-eq="${i.id}">${on?"Кашидан":"Пӯшидан"}</button>`;
+      return `<div class="item ${on?"eq":""}"><div class="em">${i.e}</div><b>${i.n}</b>${btn}</div>`;
+    }).join("");
+  }
+  function buy(id){
+    const it=item(id); if(!it) return;
+    if (S.coins<it.p){ toast("🪙 Танга намерасад! Миссияҳоро иҷро кунед"); sfx.bad(); return; }
+    if (it.cat==="food"){
+      if (S.sleeping){ toast("Байт хоб аст 😴"); return; }
+      S.coins-=it.p; S.streak = it.id==="coffee" ? S.streak : 0; it.use(); gainXP(3);
+      fx(it.e+" Ном-ном!","#fbbf24"); sfx.coffee(); log(`${it.n} харида шуд ${it.e}`); progress("feed"); good();
+    } else {
+      S.coins-=it.p; S.owned.push(id); equip(id,true); sfx.gift(); log(`Харида шуд: ${it.n} ${it.e}`,"w"); toast(`${it.e} ${it.n} — харида шуд!`); surprise(900);
+    }
+    renderTabs(); render();
+  }
+  function equip(id,forceOn){
+    const it=item(id); if(!it||!S.owned.includes(id)) return;
+    if (it.slot==="skin"){ S.skin = (S.skin===id && !forceOn) ? null : id; }
+    else { S.eq[it.slot] = (S.eq[it.slot]===id && !forceOn) ? null : id; }
+    sfx.poke(); renderTabs(); render();
+  }
+
+  /* ---------- tabs rendering ---------- */
+  function renderMissions(){
+    ensureMissions();
+    $("missions").innerHTML=S.mList.map(id=>{
+      const m=POOL.find(p=>p.id===id), pr=S.mProg[id]||0, done=pr>=m.n, cl=S.mClaim[id];
+      const btn = cl ? `<span>✅</span>` : done ? `<button class="claim go" data-claim="${id}">Гирифтан 🪙${m.c} +${m.x}XP</button>` : `<span style="color:var(--muted);font-size:12px">🪙${m.c} · ${m.x}XP</span>`;
+      return `<div class="mission ${cl?"done":""}"><div class="l"><div>${m.t}</div><div class="bar"><div class="fill" style="width:${pr/m.n*100}%;background:linear-gradient(90deg,#a78bfa,#6ee7ff)"></div></div><small style="color:var(--muted)">${pr}/${m.n}</small></div>${btn}</div>`;
+    }).join("")+`<div class="hint">Миссияҳо ҳар рӯз нав мешаванд 📅</div>`;
+  }
+  function renderLevels(){
+    $("levels").innerHTML=`<div class="abil" style="border-color:var(--c1)">🏆 <b>Level ${S.level}</b> — ${S.xp}/${need()} XP · намуди ранг бо Level иваз мешавад</div>`+
+      ABIL.map(a=>`<div class="abil ${S.level>=a[0]?"":"lock"}">${S.level>=a[0]?"✅":"🔒"} <b>Level ${a[0]}</b> — ${a[1]}</div>`).join("");
+  }
+  function renderTabs(){ renderShop(); renderMissions(); renderLevels(); }
+
+  /* ---------- chat ---------- */
+  function addMsg(text,who){
+    const d=document.createElement("div"); d.className="msg "+who; d.textContent=text;
+    const c=$("chat"); c.appendChild(d); while(c.children.length>40) c.removeChild(c.firstChild); c.scrollTop=c.scrollHeight;
+  }
+  function botReply(text){
+    const t=text.toLowerCase(), has=(...w)=>w.some(x=>t.includes(x)), m=currentMood();
+    if (S.sleeping) return "Zzz... (Байт хоб аст) 💤";
+    if (has("код навис","напиши код","write code")){ setTimeout(code,400); return "Хуб! Оғоз мекунам 💻"; }
+    if (has("салом","привет","hello","hi ","ассалом")||t==="hi") return pick(["Салом, девелопер! 👋","Ассалом! Омодаам кор кунем!","Салом! Имрӯз чӣ месозем?"]);
+    if (has("ҳол","хел","как дела","how are")){
+      const r={happy:"Аъло! Энергия ва кайфият хубанд 😄",neutral:"Мешавад, лекин кофе намебуд... ☕",tired:"Хеле хастаам... 🥱 Кофе ё хоб лозим.",sad:"Каме ғамгинам... Як Bug-ро ислоҳ кунем? 🥺",angry:"Асабонӣ! Хеле зиёд баг! 😡",super:"Ман дар Super режимам! ⚡",ultra:"ULTRA! Беҳтар аз ин нашавад! 🌌",surprised:"Ҳайронам, ту чӣ кор кардӣ?! 😲"};
+      return r[m]||"Хуб!";
+    }
+    if (has("кофе","coffee")) return S.coffee<30?"Бале, лутфан! Кофе тамом шуда истодааст ☕":"Кофе — сӯзишвории ман! ☕☕☕";
+    if (has("хоб","sleep","спать")) return S.energy<40?"Бале, хоб лозим аст... 😴":"Ҳоло хоб намеояд, лекин шаб мешавад.";
+    if (has("баг","bug")) return S.bugs>0?`Ман ${S.bugs} баг мебинам! 🐞 Fix кунем!`:"Ҳоло ягон баг нест. Ман тоза нигоҳ медорам 😎";
+    if (has("ном","ким ҳастӣ","кӣ ҳастӣ","who are")) return "Ман Байт — AI-питомеци девелопер. Дар як файл зиндагӣ мекунам 🤖";
+    if (has("ташаккур","спасибо","thanks","rahmat","раҳмат")) return "Марҳамат! Ту дӯсти беҳтарин ❤️";
+    if (has("шаб","night")) return isNight()?"Шаб аст! Неон равшан шуд ✨":"Ҳоло рӯз аст ☀️";
+    if (has("level","сатҳ")) return `Ман Level ${S.level} ҳастам, ${S.xp}/${need()} XP 🏆`;
+    if (has("дӯст","люблю","love")) return "Ман ҳам туро дӯст медорам! 💖";
+    if (has("ultra")) return "Ultra: энергия ≥85, кайфият ≥85, сифати код ≥75 ва XP-и кофӣ лозим 🌌";
+    if (t.length>60){ surprise(); return "Воҳ, чӣ қадар дароз! Ман ҳайронам 😲"; }
+    return pick(["Ҳм, ҷолиб! Боз бигӯ 🤔","Ман ин суханро нафаҳмидам, лекин код навиштан мехоҳам 💻","Бештар кофе, камтар бағ! ☕","01001000 01101001 (яъне: Салом!)","Пурсиши хуб! Дар Stack Overflow ҷавобаш ҳаст 😄"]);
+  }
+  function sendChat(){
+    const inp=$("chatIn"), text=inp.value.trim(); if(!text) return;
+    inp.value=""; addMsg(text,"me"); S.streak=0;
+    setTimeout(()=>{
+      const r=botReply(text); addMsg(r,"bot"); speak(currentMood(),r.slice(0,70),3500);
+      $("bot").classList.remove("hop"); void $("bot").offsetWidth; $("bot").classList.add("hop");
+      if(!S.sleeping){ S.mood=clamp(S.mood+2); gainXP(2); progress("chat"); sfx.poke(); }
+      render();
+    },450);
+  }
+
+  /* ---------- render ---------- */
+  const barId={energy:"Energy",mood:"Mood",quality:"Quality",coffee:"Coffee"};
+  const last={mood:"",acc:"",skin:""};
+  function render(){
+    for (const k in barId){
+      const v=Math.round(S[k]); $("v"+barId[k]).textContent=v+"%";
+      const f=$("b"+barId[k]); f.style.width=v+"%"; f.classList.toggle("low",v<25); f.classList.toggle("mid",v>=25&&v<45);
+    }
+    $("bXp").style.width=(S.xp/need()*100)+"%"; $("vXp").textContent=`${S.xp}/${need()} XP`; $("lvl").textContent=S.level;
+    $("mLines").textContent=S.lines; $("mBugs").textContent=S.bugs; $("mKilled").textContent=S.killed;
+    $("coins").textContent=S.coins;
+    $("aSleep").classList.toggle("on",S.sleeping);
+    $("sleepTxt").textContent=S.sleeping?"Бедор кардан":"Истироҳат / Хоб";
+    ["aFeed","aCode","aFix"].forEach(id=>$(id).disabled=S.sleeping);
+    const night=isNight();
+    $("stage").classList.toggle("night",night); document.body.classList.toggle("night",night);
+    $("dayChip").textContent=night?"🌙 Шаб":"🌞 Рӯз";
+    const p=pw(); $("stage").dataset.power=p; document.body.classList.toggle("ultra",p==="ultra");
+    $("banner").textContent=p==="ultra"?"🌌 ULTRA DEVELOPER MODE":"⚡ SUPER DEVELOPER";
+    $("stage").dataset.fx=S.eq.fx||"";
+    $("gift").classList.toggle("show",S.gift);
+    const sk=skinId(); if(sk!==last.skin){ last.skin=sk; $("sk0").setAttribute("stop-color",SKINS[sk][0]); $("sk1").setAttribute("stop-color",SKINS[sk][1]); }
+    const ak=JSON.stringify(S.eq); if(ak!==last.acc){ last.acc=ak; $("acc").innerHTML=accSvg(); }
+    const mood=currentMood();
+    if (mood!==last.mood){
+      last.mood=mood; $("face").innerHTML=faces[mood]; $("stage").dataset.mood=mood;
+      $("moodTag").textContent=moodMeta[mood][0]+" "+moodMeta[mood][1];
+      const ch=mood==="happy"?.55:0; $("cheekL").setAttribute("opacity",ch); $("cheekR").setAttribute("opacity",ch);
+      $("antenna").setAttribute("fill",mood==="angry"?"#fb7185":mood==="tired"||mood==="sad"?"#fbbf24":mood==="super"?"#facc15":mood==="ultra"?"#f0abfc":"#6ee7ff");
+      $("chest").textContent=mood==="sleepy"?"zzz":mood==="angry"?"!!!":mood==="super"?"⚡⚡":mood==="ultra"?"∞":"</>";
+      if (!["surprised","super","ultra"].includes(mood)) speak(mood);
+    }
+    save();
+  }
+  function save(){ try{ localStorage.setItem(KEY,JSON.stringify(S)); }catch(e){} }
+
+  /* ---------- events ---------- */
+  $("aFeed").onclick=feed; $("aCode").onclick=code; $("aFix").onclick=fix; $("aSleep").onclick=sleepBtn;
+  $("bot").onclick=poke; $("gift").onclick=openGift;
+  $("mute").onclick=()=>{muted=!muted;$("mute").textContent=muted?"🔇":"🔊"};
+  $("reset").onclick=()=>{ if(confirm("Бозиро аз нав оғоз мекунед? Ҳама пешрафт нест мешавад.")){ S=fresh(); last.mood=last.acc=last.skin=""; $("log").innerHTML=""; $("chat").innerHTML=""; syncBugs(); ensureMissions(); renderTabs(); log("Бозии нав оғоз шуд 👋"); render(); } };
+  $("chatSend").onclick=sendChat;
+  $("chatIn").addEventListener("keydown",e=>{ if(e.key==="Enter") sendChat(); });
+  document.querySelectorAll(".tab").forEach(b=>b.onclick=()=>{
+    document.querySelectorAll(".tab").forEach(x=>x.classList.toggle("on",x===b));
+    document.querySelectorAll(".tp").forEach(x=>x.classList.toggle("on",x.id==="tp-"+b.dataset.tab));
+  });
+  $("tp-shop").addEventListener("click",e=>{
+    const t=e.target.closest("button"); if(!t) return;
+    if (t.dataset.cat){ shopCat=t.dataset.cat; renderShop(); }
+    else if (t.dataset.buy) buy(t.dataset.buy);
+    else if (t.dataset.eq) equip(t.dataset.eq);
+  });
+  $("missions").addEventListener("click",e=>{
+    const t=e.target.closest("[data-claim]"); if(!t) return;
+    const id=t.dataset.claim, m=POOL.find(p=>p.id===id);
+    if (S.mClaim[id]||(S.mProg[id]||0)<m.n) return;
+    S.mClaim[id]=true; addCoins(m.c); gainXP(m.x); sfx.gift(); good();
+    toast(`📅 Мукофот: 🪙${Math.round(m.c*coinMult())} + ${m.x} XP`); renderTabs(); render();
+  });
+  window.addEventListener("keydown",e=>{
+    if (e.target.tagName==="INPUT") return;
+    const k=e.key.toLowerCase();
+    if (e.code==="Space"){e.preventDefault();code()} else if(k==="c")feed(); else if(k==="f")fix(); else if(k==="s")sleepBtn();
+  });
+
+  /* ---------- game loop ---------- */
+  let prevPw="";
+  setInterval(()=>{
+    S.age++;
+    const p=pw();
+    if (prevPw==="ultra"&&p!=="ultra"){ S.ultraCool=S.age+90; log("Ultra режим ба охир расид. Дам гирем... 😮‍💨"); speak("neutral","Ultra тамом шуд, аммо ман боз меоям!"); }
+    if (prevPw==="super"&&p!=="super"){ log("Super режим тамом шуд."); }
+    prevPw=p;
+    const night=isNight();
+    if (S.sleeping){
+      S.energy=clamp(S.energy+(night?4.5:3)); S.mood=clamp(S.mood+.8); S.coffee=clamp(S.coffee-.3); S.quality=clamp(S.quality+.2);
+      if (S.energy>=100) wake(true);
+    } else {
+      if (p==="ultra"){
+        S.energy=clamp(S.energy+.1); S.mood=clamp(S.mood+.1); S.coffee=clamp(S.coffee-.2);
+      } else {
+        S.coffee=clamp(S.coffee-.8*(S.level>=2?.75:1));
+        S.energy=clamp(S.energy-.5-(S.coffee<20?.6:0)-(night?.2:0));
+        S.mood=clamp(S.mood-.4-S.bugs*.15-(S.energy<25?.3:0));
+        if (S.bugs>2) S.quality=clamp(S.quality-.2*S.bugs);
+        if (S.coffee<=0) S.mood=clamp(S.mood-.5);
+      }
+      if (p && S.bugs>0 && S.age%2===0){ killBug(false); fx("🔍 Auto-detect","#facc15"); }
+      else if (S.level>=3 && S.bugs>0 && S.age%40===0) killBug(false);
+      if (!p && S.age%25===0 && Math.random()<.5 && S.lines>0 && S.bugs<8) addBug();
+      if (S.age%20===0){ if(S.energy<30) log("Огоҳӣ: энергия кам аст! ⚡","w"); if(S.coffee<20) log("Огоҳӣ: кофе тамом шуда истодааст ☕","w"); }
+      if (night && S.age%180===95){ log("Шаб омад 🌙 Неонҳо фаъол шуданд."); speak("sleepy","Шаб шуд... хоб меояд 🌙"); }
+      if (!night && S.age%180===0){ log("Субҳ шуд 🌞"); }
+      if (S.energy<=0){ S.sleeping=true; S.energy=1; log("Энергия 0% — Байт худ ба худ хоб рафт 💤","w"); sfx.sleep(); }
+      checkUltra();
+      if (p==="ultra" && S.age%7===0){ const b=$("bot"); b.classList.remove("flip"); void b.offsetWidth; b.classList.add("flip"); sfx.up(); }
+    }
+    ensureMissions();
+    $("age").textContent=Math.floor(S.age/60)+":"+String(S.age%60).padStart(2,"0");
+    render();
+  },1000);
+
+  /* ---------- visual effects ---------- */
+  setInterval(()=>{
+    const st=$("stage"), p=pw(), f=S.eq.fx;
+    const spawn=(cls,txt,xr)=>{ const e=document.createElement("div"); e.className=cls; e.textContent=txt;
+      e.style.left=rnd(xr[0],xr[1])+"%"; e.style.top=rnd(18,70)+"%"; st.appendChild(e); setTimeout(()=>e.remove(),1300); };
+    if (p||f==="lightning") spawn("bolt","⚡",[8,88]);
+    if (f==="sparkle"||p==="ultra") spawn("spark",pick(["✨","⭐","💫"]),[22,76]);
+  },700);
+
+  const sky=$("sky"); for(let i=0;i<26;i++){ const s=document.createElement("i"); s.style.left=rnd(2,98)+"%"; s.style.top=rnd(2,80)+"%"; s.style.animationDelay=(Math.random()*2)+"s"; sky.appendChild(s); }
+
+  /* matrix rain */
+  const cv=$("rain"), cx=cv.getContext("2d"); let cols,drops,fs=16;
+  function rainInit(){cv.width=innerWidth;cv.height=innerHeight;cols=Math.ceil(cv.width/fs);drops=Array(cols).fill(0).map(()=>Math.random()*-50)}
+  rainInit(); addEventListener("resize",rainInit);
+  const chars="01{}[]()<>/;=+*#$&ABCDEFfn";
+  setInterval(()=>{
+    cx.fillStyle="rgba(7,11,20,.12)"; cx.fillRect(0,0,cv.width,cv.height);
+    cx.fillStyle=pw()==="ultra"?"#c084fc":pw()==="super"?"#facc15":"#3aa7c9"; cx.font=fs+"px monospace";
+    for(let i=0;i<cols;i++){ cx.fillText(chars[rnd(0,chars.length-1)],i*fs,drops[i]*fs); if(drops[i]*fs>cv.height&&Math.random()>.975)drops[i]=0; drops[i]+=.6; }
+  },60);
+
+  /* ---------- start ---------- */
+  ensureMissions(); syncBugs(); renderTabs();
+  addMsg("Салом! Ман Байт. Бо ман сӯҳбат кунед 💬","bot");
+  log("Системаи Байт оғоз шуд. Салом, девелопер! 👋");
+  if (S.lines>0) log("Бозии пештара барқарор шуд.");
+  render();
+})();
+</script>
+</body>
+</html>
